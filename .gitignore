@@ -1,0 +1,7 @@
+# 敏感信息防护：公共仓库禁止提交任何密钥/token/IP/实例ID
+*.env
+.env*
+*token*
+*credential*
+secrets/
+config.local.*
