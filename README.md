@@ -26,7 +26,10 @@
 # 项目内添加
 git submodule add https://github.com/HirAhiraPpy/ai-dev-workflows.git workflows
 
-# clone 时必须带 --recursive（否则 submodule 为空）
+# 项目根 AGENTS.md：symlink 直连 submodule 内规范（单一事实源，零副本）
+ln -s workflows/agents/project-default.md AGENTS.md
+
+# clone 时必须带 --recursive（否则 submodule 为空，AGENTS.md symlink 断链）
 git clone --recursive <repo>
 
 # 更新（MVP 期 rolling 语义；稳定后改为锁 commit）

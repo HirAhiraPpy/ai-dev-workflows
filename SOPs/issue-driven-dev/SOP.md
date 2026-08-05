@@ -23,7 +23,7 @@
 
 ## 硬约定
 
-- 所有 clone 必须 `--recursive`（否则 submodule 为空）
+- 所有 clone 必须 `--recursive`——**项目根 AGENTS.md 是 symlink 直连 submodule 内文件，submodule 缺失即断链**
 - **submodule 单向**：内容只改公共仓库；项目内只做 update / pin，禁止在 submodule 目录内 commit
 - **串行执行**：一次只处理一个任务（t4g.micro 1GB 内存约束）
 - 环境敏感信息一律占位符，真实值在项目私有配置

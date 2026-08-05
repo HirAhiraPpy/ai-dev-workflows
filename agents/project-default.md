@@ -1,6 +1,11 @@
-# 项目 Agent 规范（公共仓库版，被项目根薄 AGENTS.md 指针引用）
+# 项目 Agent 规范（公共仓库版）
 
+被项目根 `AGENTS.md` **symlink** 引用（`AGENTS.md -> workflows/agents/project-default.md`）。
 codex 等执行 agent 在项目内按本规范执行任务。
+
+> 设计决策：项目根 AGENTS.md 用 symlink 直连 submodule 内文件（非薄指针副本），
+> 保证单一事实源零副本。前提：clone 必须 `--recursive`（submodule 缺失时 symlink 断链）。
+> 详见 docs/lessons/2026-08-05-agents-symlink.md。
 
 ## 任务来源
 
