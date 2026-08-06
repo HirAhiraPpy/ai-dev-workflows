@@ -5,3 +5,5 @@
 *credential*
 secrets/
 config.local.*
+__pycache__/
+*.pyc
