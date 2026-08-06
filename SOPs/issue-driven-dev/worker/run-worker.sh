@@ -31,3 +31,8 @@ docker run --rm \
     python3 /workspace/workflows/SOPs/issue-driven-dev/worker/worker.py
     echo "WORKER_EXIT=$?"
   '
+RC=$?
+# 容器内以 root 操作挂载仓库会留下 root 文件（.git/objects 等），归还权限给宿主用户
+# 否则宿主后续 git fetch/checkout 报 insufficient permission
+sudo chown -R ubuntu:ubuntu "$REPO" || true
+exit $RC
