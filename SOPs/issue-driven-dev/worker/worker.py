@@ -28,7 +28,7 @@ WORKFLOWS_DIR = "workflows"          # submodule 路径（公共仓库）
 LABEL = "codex-task"
 MAX_RETRY = 2
 POLL_INTERVAL = 5 * 60
-MAX_STEPS = int(os.environ.get("WORKER_MAX_STEPS", "60"))
+MAX_STEPS = int(os.environ.get("WORKER_MAX_STEPS", "150"))
 MODEL = os.environ.get("WORKER_MODEL", "deepseek-v4-flash")
 BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 LOCK_FILE = Path(tempfile.gettempdir()) / "issue-driven-worker.lock"
@@ -137,7 +137,7 @@ def exec_tool(name, args_json):
             r = subprocess.run(cmd, shell=True, capture_output=True, text=True,
                                cwd=REPO_DIR, timeout=180)
             out = (r.stdout or "") + (("\n[stderr]\n" + r.stderr) if r.stderr else "")
-            return json.dumps({"exit_code": r.returncode, "output": out[-8000:]}, ensure_ascii=False)
+            return json.dumps({"exit_code": r.returncode, "output": out[-4000:]}, ensure_ascii=False)
         except subprocess.TimeoutExpired:
             return json.dumps({"exit_code": 124, "output": "timeout after 180s"})
         except Exception as e:
@@ -150,13 +150,13 @@ def exec_tool(name, args_json):
             r = subprocess.run(["patch", "-p1", "--fuzz=3"], input=patch_text,
                                capture_output=True, text=True, cwd=REPO_DIR, timeout=60)
             out = (r.stdout or "") + (r.stderr or "")
-            return json.dumps({"exit_code": r.returncode, "output": out[-4000:]}, ensure_ascii=False)
+            return json.dumps({"exit_code": r.returncode, "output": out[-2000:]}, ensure_ascii=False)
         except FileNotFoundError:
             # 容器无 patch 命令时 fallback git apply
             r = subprocess.run(["git", "apply", "-"], input=patch_text,
                                capture_output=True, text=True, cwd=REPO_DIR, timeout=60)
             out = (r.stdout or "") + (r.stderr or "")
-            return json.dumps({"exit_code": r.returncode, "output": out[-4000:]}, ensure_ascii=False)
+            return json.dumps({"exit_code": r.returncode, "output": out[-2000:]}, ensure_ascii=False)
         except Exception as e:
             return json.dumps({"exit_code": 1, "output": f"apply_patch error: {e}"})
     return json.dumps({"error": f"unknown tool {name}"})

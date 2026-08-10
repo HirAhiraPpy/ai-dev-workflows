@@ -10,6 +10,7 @@ REPO="/home/ubuntu/binance-collector"
 docker run --rm \
   -e DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:?需要 DEEPSEEK_API_KEY}" \
   -e GH_TOKEN="${GH_TOKEN:?需要 GH_TOKEN}" \
+  -e WORKER_MAX_STEPS="${WORKER_MAX_STEPS:-150}" \
   -e WORKER_REPO_DIR="/workspace" \
   -v "${REPO}:/workspace" \
   -w /workspace \
