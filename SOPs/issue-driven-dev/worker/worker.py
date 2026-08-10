@@ -28,17 +28,18 @@ WORKFLOWS_DIR = "workflows"          # submodule 路径（公共仓库）
 LABEL = "codex-task"
 MAX_RETRY = 2
 POLL_INTERVAL = 5 * 60
-MAX_STEPS = int(os.environ.get("WORKER_MAX_STEPS", "30"))
+MAX_STEPS = int(os.environ.get("WORKER_MAX_STEPS", "60"))
 MODEL = os.environ.get("WORKER_MODEL", "deepseek-v4-flash")
 BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 LOCK_FILE = Path(tempfile.gettempdir()) / "issue-driven-worker.lock"
 
 SYSTEM_PROMPT = """你是资深软件工程师，通过工具在 /workspace 完成代码任务。规则：
-1. 先探索仓库（ls / git status / 读关键文件），理解现有代码再动手。
-2. 用 shell 工具执行命令；修改代码优先用 apply_patch 工具（unified diff，路径相对工作区根）。
+1. 探索阶段最多 5 个 shell 调用（ls / git status / 读关键文件），之后立即开始写代码。
+2. 写代码优先用 apply_patch 工具（unified diff，路径相对工作区根）；新建文件也可用 shell 写 heredoc。
 3. 每处修改后自行验证：语法检查、运行相关测试。
 4. 严格遵守项目根 AGENTS.md 与 workflows/agents/project-default.md 的规范。
-5. 全部完成时输出简洁总结：改了哪些文件、验证方式与结果。不要输出无关内容。"""
+5. 全部完成时输出简洁总结：改了哪些文件、验证方式与结果。不要输出无关内容。
+6. 不要从互联网下载文档；issue 中已包含所需信息，仓库内文件优先。"""
 
 TOOLS = [
     {
@@ -193,7 +194,7 @@ def run_agent(num, body):
                 has_call = True
                 name = getattr(o, "name", "?")
                 args = getattr(o, "arguments", "") or ""
-                log(f"  step {step+1}: tool={name}")
+                log(f"  step {step+1}: tool={name} args={args[:150]!r}")
                 result = exec_tool(name, args)
                 turn_input.append({"type": "function_call_output",
                                    "call_id": o.call_id, "output": result})
