@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 (2026-10-31)
+
+- 新增 `SOPs/kanban-codex-dispatch/`：本机 Kanban 派工闭环（编排者沿用 default profile，执行者驱动 codex CLI，
+  审查者独立 profile）；codex 必须做原子 commit，并行按 worktree 隔离，审查通过后删除 worktree
+- 新增 `profiles/`：worker profile 的可版本化组成（`_shared/SOUL.md` 纪律 + `impl-codex` / `review` 角色）
+- 新增 `scripts/`：`bootstrap.sh`（仓库→本机装配）、`capture.sh`（本机→仓库抓取）、
+  `check-secrets.sh`（初筛）、`ai-desensitize-review.sh`（**AI agent 脱敏门禁**，脚本不可替代）
+- 新增 `templates/kanban-card.md` 与 `skills/kanban-card-authoring/`
+- README 补充工作流地图与两道门禁
+
 ## 0.2.0 (2026-08-06)
 
 - worker v0.2：openai SDK agent loop 替代 codex CLI（Responses API + shell/apply_patch 工具）

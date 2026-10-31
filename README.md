@@ -9,6 +9,9 @@
 | 目录 | 内容 | 消费者 |
 |---|---|---|
 | `SOPs/issue-driven-dev/` | issue 驱动的 AI 开发闭环（issue → codex → PR） | worker / 人 |
+| `SOPs/kanban-codex-dispatch/` | 本机 Kanban 派工闭环（卡片 → codex → 审查 → 人拍板） | 编排者 / worker |
+| `profiles/` | 可版本化的 worker profile 组成（SOUL / 非敏感配置） | 本机 Hermes |
+| `scripts/` | profile 装配、抓取、提交前脱敏门禁 | 人 / agent |
 | `agents/` | AGENTS.md 指针目标（声明式项目规范） | codex 等执行 agent |
 | `skills/` | 给 AI agent 的过程式知识（Hermes-compatible） | 本机 Hermes |
 | `templates/` | issue / PR 模板 | 编排者 |
@@ -40,3 +43,9 @@ git submodule update --remote workflows
 
 本仓库为**公共仓库**，禁止提交任何密钥 / token / IP / 实例 ID / 密钥名。
 一律使用 `<PLACEHOLDER>`，真实值放各项目私有配置（gitignore）。
+
+提交前的两道门禁（缺一不可）：
+
+1. `scripts/check-secrets.sh` —— 正则初筛（令牌前缀、`.env`、私钥块、内网地址字面量）。
+2. `scripts/ai-desensitize-review.sh` —— **由 AI agent 通读 diff 判定私有信息**（私有项目名、内部主机/路径、
+   人员信息、雇主线索）。这是硬门禁；脚本正则不能替代它。
