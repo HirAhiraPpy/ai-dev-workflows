@@ -27,6 +27,8 @@ import re
 import sqlite3
 import subprocess
 import sys
+import time
+from datetime import datetime
 import urllib.error
 import urllib.request
 
@@ -34,6 +36,8 @@ PR_RE = re.compile(r"https://github\.com/([\w.-]+)/([\w.-]+)/pull/(\d+)")
 # 次级识别：正文只写「PR #36 / pull/36」时，用卡片 workspace 的 git remote 补出 owner/repo
 PR_NUM_RE = re.compile(r"(?:PR\s*#|pull/)(\d+)")
 GATE_ASSIGNEE = "pr-gate"
+SETTLE_S = 300      # head 提交距今不足 5 分钟则等它稳定再门禁（避免审到半截）
+COOLDOWN_S = 1200   # 同一 PR 两次门禁至少间隔 20 分钟
 LOOKBACK_DAYS = 7
 HERMES = os.environ.get("HERMES_BIN", "hermes")
 KANBAN_HOME = os.path.expanduser(os.environ.get("KANBAN_HOME", ""))
@@ -124,9 +128,23 @@ def gh_head_sha(repo: str, pr: int) -> str | None:
     req.add_header("Accept", "application/vnd.github+json")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read())["head"]["sha"]
+            data = json.loads(resp.read())
+        if data.get("state") != "open":
+            return None, None
+        head = data["head"]["sha"]
+        # 取该 sha 的提交时间，用于静置窗口判断
+        req2 = urllib.request.Request(
+            f"https://api.github.com/repos/{repo}/commits/{head}")
+        req2.add_header("Authorization", f"Bearer {token}")
+        req2.add_header("Accept", "application/vnd.github+json")
+        try:
+            with urllib.request.urlopen(req2, timeout=30) as resp2:
+                when = json.loads(resp2.read())["commit"]["committer"]["date"]
+        except Exception:
+            when = None
+        return head, when
     except (urllib.error.URLError, KeyError, json.JSONDecodeError):
-        return None
+        return None, None
 
 
 def repo_root(workspace_path: str | None, repo: str) -> str:
@@ -200,6 +218,7 @@ def main() -> int:
         sys.exit("需要 KANBAN_HOME（看板根目录）")
     state = load_state()
     state.setdefault("_scanned", {})
+    done_keys: set[str] = set()
     created = 0
     for board, db in board_dbs():
         if created >= args.max:
@@ -229,16 +248,30 @@ def main() -> int:
             for owner, name, num in candidates:
                 repo, pr = f"{owner}/{name}", num
                 key = f"{repo}#{pr}"
-                if key in seen:
+                if key in seen or key in done_keys:
                     continue
                 seen.add(key)
-                sha = gh_head_sha(repo, pr)
+                sha, when = gh_head_sha(repo, pr)
                 if not sha:
                     if args.verbose:
                         print(f"[skip] {board} {key}: 读不到 head sha（凭据/网络）")
                     continue
                 if state.get(key, {}).get("sha") == sha:
                     continue
+                prev = state.get(key) or {}
+                if prev.get("gated_at") and time.time() - float(prev["gated_at"]) < COOLDOWN_S:
+                    if args.verbose:
+                        print(f"[skip] {board} {key}: 冷却中（{COOLDOWN_S}s 内已门禁过）")
+                    continue
+                if when:
+                    try:
+                        pushed = datetime.fromisoformat(when.replace("Z", "+00:00")).timestamp()
+                        if time.time() - pushed < SETTLE_S:
+                            if args.verbose:
+                                print(f"[skip] {board} {key}: head 刚推送，等静置 {SETTLE_S}s")
+                            continue
+                    except ValueError:
+                        pass
                 if active_gate_for(db, repo, pr):
                     continue
                 title = f"【PR门禁】{repo}#{pr}"
@@ -247,6 +280,7 @@ def main() -> int:
                     ghbot=GHBOT, secrets=SECRETS_DIR, assignee=GATE_ASSIGNEE, sha=sha)
                 if args.dry_run:
                     print(f"[dry-run] 会派 {board} {key} @{sha[:8]}")
+                    done_keys.add(key)
                     continue
                 cmd = [HERMES, "kanban", "--board", board, "create", title,
                        "--body", body, "--assignee", GATE_ASSIGNEE,
@@ -260,7 +294,9 @@ def main() -> int:
                     print(f"[fail] {board} {key}: 建卡输出无法解析: {proc.stdout.strip()[:160]}")
                     continue
                 card = card_m.group(1)
-                state[key] = {"sha": sha, "card": card, "board": board}
+                state[key] = {"sha": sha, "card": card, "board": board,
+                              "gated_at": time.time()}
+                done_keys.add(key)
                 save_state(state)
                 created += 1
                 print(f"[gate] {board} {key} → {card} @{sha[:8]}")
