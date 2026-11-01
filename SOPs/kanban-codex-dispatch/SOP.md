@@ -18,6 +18,17 @@
 | 编码器 | codex CLI（子进程） | 真正改代码；**必须 commit** |
 | 总线 | Kanban board（SQLite） | 卡片状态、依赖、评论、事件 |
 
+## 装配与同步
+
+```bash
+scripts/sync.sh plan      # 只读对比 manifest 与本机，列出 drift
+scripts/sync.sh apply     # 仓库 → 机器（SOUL 覆盖 + manifest 声明的 config 键）
+scripts/sync.sh capture   # 机器 → 仓库（偏离写成候选，人工合并）
+```
+
+`profiles/manifest.conf` 是唯一事实源（哪个 profile、哪份 SOUL、哪些 config 键受管）；
+不在清单里的键、`.env`、状态库都不参与同步。详见 `profiles/README.md`。
+
 ## 卡片契约（每张实现卡必填）
 
 模板见 `templates/kanban-card.md`，四段不可缺：

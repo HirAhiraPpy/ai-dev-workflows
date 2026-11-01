@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 (2026-11-01)
+
+- 新增 `scripts/sync.sh` 三动词：`plan`（只读对比 manifest 与本机，drift 入退出码）、`apply`（仓库 → 机器，
+  SOUL 覆盖 + 只写受管 config 键）、`capture`（机器 → 仓库，偏离写成候选供人工合并）
+- 新增 `profiles/manifest.conf`：唯一事实源，声明每个 profile 的 SOUL 与受管 config 键
+- `bootstrap.sh` 降级为 `sync.sh apply` 的兼容入口；删除 `capture.sh` 与各 profile 的 `config.yaml` 模板
+  （取值统一进 manifest，避免两处漂移）
+- `profiles/README.md` 重写为同步模型说明：仓库声明应然、本机承载实然；`.env`/状态/非受管键不参与
+
 ## 0.3.0 (2026-10-31)
 
 - 新增 `SOPs/kanban-codex-dispatch/`：本机 Kanban 派工闭环（编排者沿用 default profile，执行者驱动 codex CLI，
