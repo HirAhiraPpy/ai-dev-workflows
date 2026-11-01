@@ -1,8 +1,8 @@
 # SOP: Kanban → Codex 派工闭环
 
-- 版本: 0.1.0
+- 版本: 0.2.0
 - 状态: draft
-- 更新: 2026-10-31
+- 更新: 2026-11-01
 
 把编码任务从「人 → 编排者」的会话流，改成「人 → 看板卡 → 执行者 → 审查者 → 人拍板」的队列流。
 编排者使用操作者直接对话的 Hermes profile（本机缺省为 `default`）；编码本身交给 codex CLI。
@@ -110,6 +110,38 @@ codex exec --sandbox danger-full-access -m <tier> --skip-git-repo-check < TASK.m
 两者可叠加：看板卡要求执行者开 PR 时，把 `--completion-contract <OWNER/REPO>` 写进卡片，完成门槛交给
 GitHub required checks。
 
+## 板拓扑
+
+- **一项目一板**：slug 用 `work-<project>`（kebab-case），每块板自带 DB、工作区目录与独立视图。
+  `default` 板不闲置，用作**收件箱**：尚未决定归属的、跨项目的、临时验证的卡片。
+- **显式指定板**：`/kanban --board work-<project> ls`。不要依赖 `boards switch` 的「当前板」状态——
+  纯聊天场景下很容易忘了自己在哪块板。
+- **跨项目依赖**：跨板**不能**建 parent 链接，按三条规则处理：
+  1. 默认弱引用——在卡片 body 写「前置：`work-<upstream>` 的 `t_xxx`，未完成不要开始」，由人或编排者把关；
+  2. 真需要自动门禁时，把两张卡都放到**消费方**那块板（上游卡作父卡），用正常 `--parent`；
+  3. 不做跨板同步、不做镜像卡。
+- 板是**软删除**：`boards rm <slug>` 会把目录移到 `<root>/kanban/boards/_archived/<slug>-<ts>`，
+  搬回来并删掉墓碑 `board.json` 即可恢复。仍需谨慎，但误删可挽回。
+
+## 归档与检索
+
+- `archive <ids>` 是**软归档**：状态置 `archived`，行与评论、事件全部保留；`ls --archived` 可检索，
+  `show <id>` 仍能看到 body/评论/事件。**`archive --rm <ids>` 是永久删除**——除明确要销毁外禁用。
+- **没有原生 unarchive 动词**（`promote` 只处理 `todo/blocked → ready`，`edit` 不改状态）。
+  复活一张已归档的卡需要直接改库（急救手段，不留事件、不受支持）：
+
+  ```bash
+  sqlite3 ~/.hermes/kanban/kanban.db "UPDATE tasks SET status='done' WHERE id='t_xxxxxxxx';"
+  # 命名板：~/.hermes/kanban/boards/<slug>/kanban.db
+  ```
+
+- **研究型项目**（实验多、卡片短命）按「结题即归档」处理：
+  1. 归档前必须 `complete --summary` 写清结论（数据窗、结论、代码分支），summary 是日后检索的唯一入口；
+  2. 归档不删分支——worktree 可以删，commit 留在分支上；
+  3. 同一主题重新评估时**开新卡**并引用旧卡 id，而不是复活旧卡：数据窗与前提已变，旧卡的价值是结论与审计。
+
 ## 版本历史
 
+- 0.2.0: 增加板拓扑（一项目一板 + 收件箱、跨项目弱引用规则、板软删除）与归档检索（软归档、
+  无原生 unarchive、研究型项目结题即归档）
 - 0.1.0: 首版。编排者沿用 `default` profile；执行者/审查者独立 profile；codex 必须 commit；并行按 worktree 隔离。
