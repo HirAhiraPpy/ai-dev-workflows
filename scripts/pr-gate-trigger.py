@@ -199,6 +199,7 @@ def main() -> int:
     if not KANBAN_HOME:
         sys.exit("需要 KANBAN_HOME（看板根目录）")
     state = load_state()
+    state.setdefault("_scanned", {})
     created = 0
     for board, db in board_dbs():
         if created >= args.max:
@@ -207,6 +208,11 @@ def main() -> int:
             if created >= args.max:
                 break
             if task.get("assignee") == GATE_ASSIGNEE:
+                continue
+            # 扫描台账：同一张卡同一次完成只处理一次（被高频调用时不重复打 GitHub）
+            ledger = state.setdefault("_scanned", {})
+            stamp = str(task.get("completed_at") or "")
+            if ledger.get(task["id"]) == stamp:
                 continue
             # 门禁卡自身不触发门禁（assignee 之外的二道保险：标题前缀）
             if (task.get("title") or "").startswith("【PR门禁】"):
@@ -218,6 +224,8 @@ def main() -> int:
                 if slug:
                     owner, name = slug.split("/", 1)
                     candidates = [(owner, name, int(p)) for p in PR_NUM_RE.findall(task["text"])]
+            ledger[task["id"]] = stamp
+            save_state(state)
             for owner, name, num in candidates:
                 repo, pr = f"{owner}/{name}", num
                 key = f"{repo}#{pr}"

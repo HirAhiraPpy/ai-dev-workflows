@@ -1,6 +1,6 @@
 # SOP: Kanban → Codex 派工闭环
 
-- 版本: 0.4.0
+- 版本: 0.4.1
 - 状态: draft
 - 更新: 2026-11-01
 
@@ -171,9 +171,11 @@ GitHub required checks。
 1. **执行者在完成摘要或评论里写 PR 全链接**（`https://github.com/<owner>/<repo>/pull/<n>`）。
    这是自动触发的唯一依据；只写「PR #12」时脚本会用卡片 workspace 的 git remote 兜底推断，
    但不要把兜底当常规。
-2. **触发是状态扫描，不是 hook**：`scripts/pr-gate-trigger.sh` 每 5 分钟扫各板 `done` 卡，
-   提取 PR 链接 → 取当前 head sha → 与 state 文件比对。同一 PR 的同一个 head 只门禁一次，
-   **PR 有新推送就再门禁一次**。单轮默认最多派 2 张，避免把队列塞爆。
+2. **触发挂在调度器的 dispatch tick 上（插件，不用 cron、不发通知）**：`kanban-pr-gate` 插件在每次
+   dispatcher tick 后 fire-and-forget 起一次 `scripts/pr-gate-trigger.sh`；脚本提取 done 卡上的 PR 链接 →
+   取当前 head sha → 与状态文件比对。同一 PR 的同一个 head 只门禁一次，**PR 有新推送就再门禁一次**。
+   去重靠 (repo, PR, head_sha)，另有扫描台账保证同一张卡的完成不会被重复处理；单轮默认最多派 2 张。
+   结果只落在 PR 评论、卡片评论与 `~/.hermes/state/pr-gate-trigger.log`，**不进聊天**——通知是噪音。
 3. **门禁卡的 assignee 是 `pr-gate`、workspace 是 `dir:<仓库>`（不用 worktree）**，且**不设 parent**：
    它是在执行卡完成之后才产生的，不需要也不该和原卡构成依赖。
 4. **门禁结论只写入 PR 与卡片评论**：`[gate] verdict=<APPROVE|REQUEST_CHANGES|ESCALATE> issues=<n>`。
@@ -189,8 +191,25 @@ GitHub required checks。
   `git revert -m 1` 会整批带回。
 - 只有当新内容**真的依赖**分支上的其它改动时才保留合并形态，并在 PR body 写明依赖链与理由。
 
+### 开工前先扫重叠（新建分支或 PR 的前置）
+
+同一件事只允许存在**一个载体**（分支 + PR）。新建之前先扫：
+
+```bash
+scripts/pr-overlap-scan.sh <会改动的路径…>     # 退出码 10 = 发现重叠
+```
+
+- **复用**：已有 PR/分支在改同一批路径 → 在它上面追加 commit。
+- **重开**：只有当旧载体形态确实不可救时（例如合并形态已被判不合格）才重开；卡片里必须写清
+  旧 PR 的去留（关闭 / 保留观察 / 谁关），**不许写「由操作者决定」把矛盾留给下游**。
+- **合并**：两个载体内容重叠时先定唯一载体，另一个立即关闭，再继续做事。
+
+扫描结论要贴进卡片评论当证据。派卡方（写卡片的人）和执行者都有这个义务：派卡方错在「没看已有载体就派新载体的活」，执行者错在「没扫就照做」。
+
 ## 版本历史
 
+- 0.4.1: 门禁触发改为网关 dispatch tick 上的插件（不用 cron、不进聊天通知）；新增「开工前先扫重叠」节
+  （`scripts/pr-overlap-scan.sh`，复用/重开/合并三选一，旧载体处置不许留「由操作者决定」）与卡片模板必填节
 - 0.4.0: 增加 PR 门禁节（pr-gate 自动触发、head sha 去重、门禁卡形态、合并仍由人拍板）与 PR 形态规则
   （从 main 切分支、最小 commit，保留合并需写明依赖）
 - 0.3.1: 串行改用 parent 链（领取阶段复查父卡，链头才派工）；验证依赖边只读 `show <id>`；

@@ -32,8 +32,11 @@
 
 卡片明确要求 push / 开 PR 时才做，否则不碰远端。
 
+- **新建分支或 PR 之前先扫重叠**：`scripts/pr-overlap-scan.sh <会改动的路径…>`（退出码 10 = 有重叠）。
+  已存在同目标的 PR/分支就在它上面追加 commit；确实要重开时，卡片必须写明旧 PR 的去留。
+  把扫描结论（用例：命令 + 结论行）贴进卡片评论。
 - **身份**：一律用机器人身份，不用人的身份：
-  `SECRETS_DIR=<凭据目录> bash <workflows 仓库>/scripts/gh-bot.sh dev git push …` /
+  `SECRETS_DIR=<凭据目录> bash <本仓库路径>/scripts/gh-bot.sh dev git push …` /
   `… gh-bot.sh dev gh pr create …`。仓库的 git 身份已设为机器人账号，commit 作者随之落定。
 - **形态**：从最新 `main` 切分支、按需要的最小 commit 数提交；不要用「把整条开发分支 merge 进来」交付。
   确有依赖时在 PR body 写明依赖链，否则一律 `main` 切分支。

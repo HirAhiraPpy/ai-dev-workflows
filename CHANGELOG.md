@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4 (2026-11-01)
+
+- SOP 0.4.1：门禁触发从 cron 改为调度器 tick 上的插件 `kanban-pr-gate`（不用 cron、不发聊天通知，
+  结果只落 PR 评论/卡片/日志）；新增「开工前先扫重叠」节与卡片模板必填节「现状扫描」
+- scripts/pr-overlap-scan.sh：新建分支或 PR 前扫开放 PR 与远端分支中改到同一批路径的载体，
+  退出码 10 = 发现重叠；结论要求贴进卡片评论
+- profiles/impl-codex/SOUL.md：开工前先扫重叠、扫完再决定复用/重开
+
 ## 0.4.3 (2026-11-01)
 
 - SOP 0.4.0：新增 PR 门禁节——`pr-gate` worker 自动触发（每 5 分钟扫 done 卡的 PR 链接、

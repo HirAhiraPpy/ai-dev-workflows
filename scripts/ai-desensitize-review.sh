@@ -52,6 +52,8 @@ PROMPT=$(cat <<'EOF'
   `done`、`archived`、`kanban_show`、`kanban_comment`、`kanban_block`、`kanban_complete`
 - 本仓库脚本生成的卡片标题前缀：`【PR门禁】`、`【线A·…】` 之类的分类前缀
 - 模型档位标识（如 `gpt-6.1-sol`、`gpt-6-luna`）
+- 本机自建插件名与状态/日志路径：`kanban-pr-gate`、`~/.hermes/state/…`（这是使用者自己的工具链，
+  不是外部组织的私有项目）
 
 只输出一行结论（不要引用、回显或总结输入内容，不要解释、不要建议）：
 CLEAN
