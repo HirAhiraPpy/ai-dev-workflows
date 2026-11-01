@@ -39,12 +39,25 @@
 ```bash
 source scripts/gh-bot.sh pr-gate                 # 之后 gh / git 都是该 bot 身份
 scripts/gh-bot.sh pr-gate gh pr comment 36 --body-file body.md
-scripts/gh-bot.sh pr-gate git commit -m "..."    # 提交者 = <slug>[bot]
+scripts/gh-bot.sh pr-gate git commit -m "..."    # 提交者 = <bot-login>
 ```
 
 脚本做的事：用 App ID + 私钥签 JWT → 换 installation token（1h）→ 导出 `GH_TOKEN`
 与 `GIT_AUTHOR_*` / `GIT_COMMITTER_*`。commit 的归属靠邮箱
-`<app-id>+<slug>[bot]@users.noreply.github.com` 落定，push 用的是 installation token。
+`<app-id>+<bot-login>@users.noreply.github.com` 落定，push 用的是 installation token。
+
+**App 名 ≠ bot 登录名**（最容易踩的一处）：App 名是建 App 时自己填的（可以写成
+`foo[bot]` 这种带后缀的样子），而 bot 登录名是 `<slug>[bot]`，随 App 一起生成。
+commit 归属邮箱要用 **bot 登录名**，不是 App 名。核对办法：
+
+```bash
+gh api 'users/<slug>%5Bbot%5D' --jq .login   # 返回 <slug>[bot] 且 type=Bot 即正确
+```
+
+脚本优先读 `<SECRETS_DIR>/github/app-<role>.name`（内容为 bot 登录名），缺失时才从
+slug 推断。另注：GitHub REST 对 App bot 的 commit `.author` 字段可能返回 `null`，
+PR 事件与页面仍显示 bot 推送——需要机器可读归属时不要依赖该字段。
+
 
 ## 注意
 

@@ -28,13 +28,20 @@ repo="${GH_BOT_REPO:-$(git config --get remote.origin.url 2>/dev/null \
         | sed -E 's#(git@|https://)github\.com[:/]##; s#\.git$##')}"
 app_id="$(tr -d '[:space:]' < "$app_id_file")"
 slug="$(tr -d '[:space:]' < "$slug_file")"
+# bot 用户名（含 [bot] 后缀）用于 commit 归属邮箱；缺省从 slug 推断
+name_file="$secrets/app-$role.name"
+if [ -r "$name_file" ]; then
+  bot_name="$(tr -d '[:space:]' < "$name_file")"
+else
+  bot_name="${slug%-bot}[bot]"
+fi
 
 token="$(GH_APP_ID="$app_id" GH_APP_KEY="$key_file" \
         "$(dirname "$0")/gh-app-token.py" "$repo")"
 
 export GH_TOKEN="$token"
-export GIT_AUTHOR_NAME="$slug[bot]"
-export GIT_AUTHOR_EMAIL="$app_id+$slug[bot]@users.noreply.github.com"
+export GIT_AUTHOR_NAME="$bot_name"
+export GIT_AUTHOR_EMAIL="$app_id+$bot_name@users.noreply.github.com"
 export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
 export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
 
