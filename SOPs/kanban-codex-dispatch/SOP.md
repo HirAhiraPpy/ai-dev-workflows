@@ -1,6 +1,6 @@
 # SOP: Kanban → Codex 派工闭环
 
-- 版本: 0.3.1
+- 版本: 0.4.0
 - 状态: draft
 - 更新: 2026-11-01
 
@@ -163,8 +163,34 @@ GitHub required checks。
    改写、拆分，甚至被补上 assignee 并提升为 todo，然后真的派工。要「种下但不能跑」的静止态用
    `blocked`，不要用 `--triage`。
 
+## PR 门禁（自动触发）
+
+执行者开完 PR 不是终点，人的 review 才是；中间插一层只读门禁 worker `pr-gate`（flash 模型），
+把人不必看的细节挡掉。
+
+1. **执行者在完成摘要或评论里写 PR 全链接**（`https://github.com/<owner>/<repo>/pull/<n>`）。
+   这是自动触发的唯一依据；只写「PR #12」时脚本会用卡片 workspace 的 git remote 兜底推断，
+   但不要把兜底当常规。
+2. **触发是状态扫描，不是 hook**：`scripts/pr-gate-trigger.sh` 每 5 分钟扫各板 `done` 卡，
+   提取 PR 链接 → 取当前 head sha → 与 state 文件比对。同一 PR 的同一个 head 只门禁一次，
+   **PR 有新推送就再门禁一次**。单轮默认最多派 2 张，避免把队列塞爆。
+3. **门禁卡的 assignee 是 `pr-gate`、workspace 是 `dir:<仓库>`（不用 worktree）**，且**不设 parent**：
+   它是在执行卡完成之后才产生的，不需要也不该和原卡构成依赖。
+4. **门禁结论只写入 PR 与卡片评论**：`[gate] verdict=<APPROVE|REQUEST_CHANGES|ESCALATE> issues=<n>`。
+   `REQUEST_CHANGES` 不自己改代码，只列「问题 → `文件:行` → 具体改法」，由编排者派工。
+5. **合并仍然由人拍板**：门禁不做能被自动合并的 approve，也不 merge、不关 PR。
+
+### PR 形态
+
+- **从 `main` 切分支、按需要的最小 commit 数提交**，不要用「把整条开发分支 merge 进来」的方式交付。
+  典型反例：12 个 commit 净 1 个文件；父提交树里还带着 main 明确不入库的目录，将来
+  `git revert -m 1` 会整批带回。
+- 只有当新内容**真的依赖**分支上的其它改动时才保留合并形态，并在 PR body 写明依赖链与理由。
+
 ## 版本历史
 
+- 0.4.0: 增加 PR 门禁节（pr-gate 自动触发、head sha 去重、门禁卡形态、合并仍由人拍板）与 PR 形态规则
+  （从 main 切分支、最小 commit，保留合并需写明依赖）
 - 0.3.1: 串行改用 parent 链（领取阶段复查父卡，链头才派工）；验证依赖边只读 `show <id>`；
   种卡前关 `kanban.auto_decompose`（它默认开着并扫描 `triage` 列，会拆分并派工）
 - 0.3.0: 增加运行纪律——单会话上游通道全局串行（拿不到即 block，不重试）、容器只在部署阶段、
