@@ -22,6 +22,10 @@ profiles/
 - `config.yaml`：只放**非敏感**项（模型档、超时、并发上限）。令牌一律从本机 `.env` / 环境变量读，
   文件里出现 `<PLACEHOLDER>` 由 bootstrap 替换。
 - 工具面（toolsets）不入库：用 `hermes -p <name> tools` 在本机确认，避免配置漂移。
+- **profile 不继承主 profile 的 `.env`**：每个 worker profile 需自行写入 provider key
+  （`chmod 600`，绝不入库）；否则 smoke 会报 `No usable credentials found for provider ...`。
+- `kanban.dispatch_profiles` 只写在该机器编排侧的配置里，**逗号分隔**（`"impl-codex,review"`）；
+  空格分隔会被当成单个 profile 名，卡片会一直卡在 `skipped_nonspawnable`。
 
 ## 使用
 

@@ -11,7 +11,7 @@
 #   WORKER_MODEL / WORKER_PROVIDER / WORKER_BASE_URL
 set -uo pipefail
 
-RED=$'\033[0;31m'; GRN=$'\033[0;32m'; YEL='\033[0;33m'; NC=$'\033[0m'
+RED=$'\033[0;31m'; GRN=$'\033[0;32m'; YEL=$'\033[0;33m'; NC=$'\033[0m'
 REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 HERMES_HOME=${HERMES_HOME:-$HOME/.hermes}
 HERMES_BIN=${HERMES_BIN:-hermes}
@@ -28,7 +28,8 @@ for a in "$@"; do
     *) ARGS+=("$a") ;;
   esac
 done
-PROFILES=("${ARGS[@]:-}")
+PROFILES=()
+if [ ${#ARGS[@]} -gt 0 ]; then PROFILES=("${ARGS[@]}"); fi
 if [ ${#PROFILES[@]} -eq 0 ]; then
   mapfile -t PROFILES < <(find "$REPO_ROOT/profiles" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | grep -v '^_shared$' | sort)
 fi
@@ -48,13 +49,10 @@ for p in "${PROFILES[@]}"; do
     echo "→ profile $p 已存在（$dst）"
   fi
 
-  # SOUL = 共享纪律 + 角色纪律
-  if [ "$FORCE" = 1 ] || [ ! -f "$dst/SOUL.md" ]; then
-    { cat "$REPO_ROOT/profiles/_shared/SOUL.md"; echo; echo "---"; echo; cat "$src/SOUL.md"; } > "$dst/SOUL.md"
-    echo "   SOUL.md 写入（$(wc -c < "$dst/SOUL.md") 字节）"
-  else
-    echo "   SOUL.md 已存在，跳过（--force 覆盖）"
-  fi
+  # SOUL = 共享纪律 + 角色纪律。仓库是本节的唯一事实源，因此每次都写
+  # （config.yaml 才是有状态的那一侧，默认不覆盖）。
+  { cat "$REPO_ROOT/profiles/_shared/SOUL.md"; echo; echo "---"; echo; cat "$src/SOUL.md"; } > "$dst/SOUL.md"
+  echo "   SOUL.md 写入（$(wc -c < "$dst/SOUL.md") 字节：共享 + 角色）"
 
   # config：占位符替换；已存在则写成 *.bootstrap.yaml 供人工比对
   if [ -f "$src/config.yaml" ]; then
@@ -84,8 +82,8 @@ cat <<EOF
 
 ${GRN}完成${NC}。接下来（编排者 = default profile，需人看得见的那一侧）：
 
-  # 只让 worker profile 接卡，避免 dispatcher 把卡片派给 default
-  hermes config set kanban.dispatch_profiles "impl-codex review"
+  # 只让 worker profile 接卡，避免 dispatcher 把卡片派给 default（必须逗号分隔）
+  hermes config set kanban.dispatch_profiles "impl-codex,review"
 
   # 冒烟
   hermes -p impl-codex chat -q '用一句话说明你的角色，然后退出'
