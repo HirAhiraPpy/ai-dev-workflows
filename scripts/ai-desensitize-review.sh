@@ -44,6 +44,15 @@ PROMPT=$(cat <<'EOF'
 不算问题：公开 API 域名、通用占位符（<PLACEHOLDER>）、开源项目名、标准命令与路径，
 以及本仓库自身的相对路径（`SOPs/`、`profiles/`、`scripts/`、`skills/`、`templates/`、`docs/`、`agents/`）。
 
+以下同样**不算**私有信息（它们就是本仓库自身的内容，不是外部项目的痕迹）：
+- 仓库内定义的 profile/角色名：`impl-codex`、`review`、`pr-gate`
+- 本仓库脚本名与参数：`gh-bot.sh`、`gh-app-token.py`、`pr-gate-trigger.py`、`sync.sh`、
+  `bootstrap.sh`、`capture.sh`、`check-secrets.sh`
+- 看板工具自带的状态名与工具名：`triage`、`todo`、`ready`、`running`、`blocked`、`review`、
+  `done`、`archived`、`kanban_show`、`kanban_comment`、`kanban_block`、`kanban_complete`
+- 本仓库脚本生成的卡片标题前缀：`【PR门禁】`、`【线A·…】` 之类的分类前缀
+- 模型档位标识（如 `gpt-6.1-sol`、`gpt-6-luna`）
+
 只输出一行结论（不要引用、回显或总结输入内容，不要解释、不要建议）：
 CLEAN
 或

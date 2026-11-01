@@ -28,6 +28,20 @@
    - 额度/登录/环境问题 → `kanban_block` 并写明原因，**不要重试烧额度**。
    - 代码未通过 → 评论贴报错，留 `ready` 重试（受卡片 `--max-retries` 约束）。
 
+## 推送与开 PR
+
+卡片明确要求 push / 开 PR 时才做，否则不碰远端。
+
+- **身份**：一律用机器人身份，不用人的身份：
+  `SECRETS_DIR=<凭据目录> bash <workflows 仓库>/scripts/gh-bot.sh dev git push …` /
+  `… gh-bot.sh dev gh pr create …`。仓库的 git 身份已设为机器人账号，commit 作者随之落定。
+- **形态**：从最新 `main` 切分支、按需要的最小 commit 数提交；不要用「把整条开发分支 merge 进来」交付。
+  确有依赖时在 PR body 写明依赖链，否则一律 `main` 切分支。
+- **PR 全链接写进完成摘要**（形如 `https://github.com/<owner>/<repo>/pull/<n>`）：
+  `pr-gate` 任务的自动触发只认这个链接，漏写等于这张 PR 不会被初筛。
+  有更新（新 push）也在评论里补一行链接与 head sha。
+- 本卡没有 PR（纯文档/清理/侦察）时，在完成摘要里明确写「本卡无 PR」，便于后续任务判断。
+
 ## 硬规则
 
 - 不在卡片范围外「顺手优化」。

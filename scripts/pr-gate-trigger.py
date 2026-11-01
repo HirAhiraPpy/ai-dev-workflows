@@ -208,6 +208,9 @@ def main() -> int:
                 break
             if task.get("assignee") == GATE_ASSIGNEE:
                 continue
+            # 门禁卡自身不触发门禁（assignee 之外的二道保险：标题前缀）
+            if (task.get("title") or "").startswith("【PR门禁】"):
+                continue
             seen = set()
             candidates = [(o, n, int(p)) for o, n, p in PR_RE.findall(task["text"])]
             if not candidates:

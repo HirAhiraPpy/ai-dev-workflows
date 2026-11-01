@@ -177,8 +177,10 @@ GitHub required checks。
 3. **门禁卡的 assignee 是 `pr-gate`、workspace 是 `dir:<仓库>`（不用 worktree）**，且**不设 parent**：
    它是在执行卡完成之后才产生的，不需要也不该和原卡构成依赖。
 4. **门禁结论只写入 PR 与卡片评论**：`[gate] verdict=<APPROVE|REQUEST_CHANGES|ESCALATE> issues=<n>`。
-   `REQUEST_CHANGES` 不自己改代码，只列「问题 → `文件:行` → 具体改法」，由编排者派工。
+   `REQUEST_CHANGES` 不自己改代码，只列「问题 → `文件:行` → 具体改法」，是否派修复任务由人/派卡方决定。
 5. **合并仍然由人拍板**：门禁不做能被自动合并的 approve，也不 merge、不关 PR。
+6. **门禁卡自身不触发门禁**：`assignee=pr-gate` 与标题前缀 `【PR门禁】` 双保险跳过，
+   否则门禁结论里引用的 PR 链接会让它把自己的同一条 PR 反复送审。
 
 ### PR 形态
 
