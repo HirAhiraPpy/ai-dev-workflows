@@ -5,5 +5,7 @@
 *credential*
 secrets/
 config.local.*
+# 例外：只换取 installation token 的脚本本体，不含任何凭据
+!scripts/gh-app-token.py
 __pycache__/
 *.pyc
